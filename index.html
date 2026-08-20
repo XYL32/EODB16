@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-text">
+        <div class="brand-name">Meridian</div>
+        <div class="brand-sub">v2.4 · analytics</div>
+      </div>
+      <button class="collapse-btn" id="collapse-btn" title="Collapse sidebar">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+
+    <nav>
+      <div class="nav-label">Workspace</div>
+      <a href="#" class="nav-item active" data-section="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span class="nav-text">Overview</span>
+      </a>
+      <a href="#" class="nav-item" data-section="transport">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="15" height="12" rx="2"/><path d="M16 10h3l3 3v5h-6"/><circle cx="6" cy="20" r="2"/><circle cx="17" cy="20" r="2"/></svg>
+        <span class="nav-text">Transport</span>
+      </a>
+      <a href="#" class="nav-item" data-section="finance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+        <span class="nav-text">Finance</span>
+      </a>
+      <a href="#" class="nav-item" data-section="infrastructure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>
+        <span class="nav-text">Infrastructure</span>
+      </a>
+      <a href="#" class="nav-item" data-section="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="nav-text">Search</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header>
+      <div class="header-left">
+        <div class="breadcrumb">MERIDIAN <span>/</span> WORKSPACE</div>
+        <div class="page-title" id="page-title">Overview</div>
+      </div>
+
+      <div class="header-right">
+        <div class="date-range">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span class="mono" id="last-updated">—</span>
+        </div>
+        <button class="icon-btn" title="Refresh" id="refresh-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label">Coy/Branch</label>
+        <select id="filter-branch" class="filter-select">
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Urgency</label>
+        <select id="filter-urgency" class="filter-select">
+          <option value="all">All</option>
+          <option value="flagged">Flagged only</option>
+        </select>
+      </div>
+      <button class="filter-clear" id="filter-clear">Clear filters</button>
+      <div class="filter-count" id="filter-count"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section id="section-overview" class="page-section">
+        <div class="cards-row" id="summary-cards"></div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Requests</div>
+            <div class="view-toggle" id="overview-toggle">
+              <button class="view-toggle-btn" data-view="table">Table</button>
+              <button class="view-toggle-btn active" data-view="charts">Charts</button>
+            </div>
+          </div>
+
+          <div id="overview-table-view" style="display:none;">
+            <div id="overview-table"></div>
+          </div>
+
+          <div id="overview-chart-view" style="display:block;">
+            <div class="charts-grid">
+              <div class="chart-card">
+                <div class="chart-card-title">Requests by Type</div>
+                <canvas id="chart-by-type"></canvas>
+              </div>
+              <div class="chart-card">
+                <div class="chart-card-title">Requests by Coy/Branch</div>
+                <canvas id="chart-by-branch"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRANSPORT -->
+      <section id="section-transport" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-title">Transport Requests</div>
+          <div id="transport-table"></div>
+        </div>
+      </section>
+
+      <!-- FINANCE -->
+      <section id="section-finance" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-title">Finance / Indent Requests</div>
+          <div id="finance-table"></div>
+        </div>
+      </section>
+
+      <!-- INFRASTRUCTURE -->
+      <section id="section-infrastructure" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-title">Infrastructure / Maintenance Requests</div>
+          <div id="infrastructure-table"></div>
+        </div>
+      </section>
+
+      <!-- SEARCH -->
+      <section id="section-search" class="page-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-title">Search All Requests</div>
+          <div class="search-box search-box-wide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="search-input" placeholder="Search by requester, Coy/Branch, type, description…">
+          </div>
+          <div id="search-table" style="margin-top:16px;"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- REQUEST DETAIL MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Request Details</div>
+        <button class="modal-close" id="modal-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
