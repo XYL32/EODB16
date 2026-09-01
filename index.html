@@ -12,8 +12,8 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-text">
-        <div class="brand-name">Meridian</div>
-        <div class="brand-sub">v2.4 · analytics</div>
+        <div class="brand-name">S4 Dashboard</div>
+        <div class="brand-sub">· analytics</div>
       </div>
       <button class="collapse-btn" id="collapse-btn" title="Collapse sidebar">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
@@ -77,6 +77,17 @@
           <option value="flagged">Flagged only</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select id="filter-status" class="filter-select">
+          <option value="all">All</option>
+          <option value="Pending">Pending</option>
+          <option value="PR Raised">PR Raised</option>
+          <option value="PR Approved">PR Approved</option>
+          <option value="Completed">Completed</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
       <button class="filter-clear" id="filter-clear">Clear filters</button>
       <div class="filter-count" id="filter-count"></div>
     </div>
@@ -108,7 +119,15 @@
               </div>
               <div class="chart-card">
                 <div class="chart-card-title">Requests by Coy/Branch</div>
-                <canvas id="chart-by-branch"></canvas>
+                <div class="doughnut-wrap">
+                  <canvas id="chart-by-branch"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="charts-grid charts-grid-full">
+              <div class="chart-card">
+                <div class="chart-card-title">Requests by Status</div>
+                <canvas id="chart-by-status"></canvas>
               </div>
             </div>
           </div>

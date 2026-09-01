@@ -436,6 +436,41 @@ header{
   word-break: break-word;
 }
 
+.status-control{
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.status-control-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.status-save-btn{
+  border: none;
+  background: var(--navy-900);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+.status-save-btn:hover{ background: var(--navy-800); }
+.status-save-btn:disabled{ opacity: 0.6; cursor: default; }
+
+.status-save-msg{
+  font-size: 12px;
+  color: var(--slate-400);
+  font-family: 'JetBrains Mono', monospace;
+}
+.status-save-msg.status-ok{ color: #2E8C5A; }
+.status-save-msg.status-error{ color: #C1443F; }
+
 /* ---------- CONTENT PLACEHOLDER ---------- */
 .content{
   flex: 1;
@@ -565,6 +600,11 @@ header{
 .badge-finance{ background: rgba(46,140,90,0.14); color: #2E8C5A; }
 .badge-warn{ background: rgba(217,83,79,0.13); color: #C1443F; }
 .badge-neutral{ background: var(--paper); color: var(--slate-400); }
+.badge-status-pending{ background: rgba(151,163,172,0.16); color: #5C6870; }
+.badge-status-progress{ background: rgba(61,154,209,0.14); color: #2A78A3; }
+.badge-status-approved{ background: rgba(46,140,90,0.14); color: #2E8C5A; }
+.badge-status-completed{ background: rgba(232,163,61,0.16); color: #B87A1C; }
+.badge-status-rejected{ background: rgba(217,83,79,0.13); color: #C1443F; }
 
 .search-box-wide{
   width: 100%;
@@ -614,8 +654,22 @@ header{
 /* ---------- CHARTS ---------- */
 .charts-grid{
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
+}
+
+.charts-grid + .charts-grid{
+  margin-top: 16px;
+}
+
+.charts-grid-full{
+  grid-template-columns: 1fr;
+  justify-items: start;
+}
+
+.charts-grid-full .chart-card{
+  width: 100%;
+  max-width: 480px;
 }
 
 .chart-card{
@@ -637,5 +691,18 @@ header{
 
 .chart-card canvas{
   flex: 1;
+  max-height: 100%;
+}
+
+.doughnut-wrap{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.doughnut-wrap canvas{
+  max-width: 100%;
   max-height: 100%;
 }

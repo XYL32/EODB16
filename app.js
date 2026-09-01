@@ -3,6 +3,11 @@
   const GID = "1081519070";
   const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
+  // Paste the Web app URL from your Apps Script deployment here:
+  const STATUS_UPDATE_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  const STATUS_OPTIONS = ["Pending", "PR Raised", "PR Approved", "Completed", "Rejected"];
+
   /* ---------------- FALLBACK MOCK DATA ---------------- */
   /* Used automatically if the live fetch fails (e.g. sheet not yet shared as "Anyone with link can view") */
   const MOCK_ROWS = [
@@ -19,18 +24,19 @@
     "Start Date & Time","End Date & Time","No. of vehicles","Reporting venue of vehicle","Destination venue(s) of vehicle",
     "Detailed description of indent","Item/Service required","Quantity","Why you need this item/service?",
     "When you need item/service by?","Start time (if any)","End time (if any)","Important remarks (if any)",
-    "Is your item on the catalogue?","Upload quotation"
+    "Is your item on the catalogue?","Upload quotation","Status"
   ];
 
   let RECORDS = rowsToRecords(HEADERS, MOCK_ROWS);
 
   /* ---------------- FILTERS ---------------- */
-  let filterState = { branch: 'all', urgency: 'all' };
+  let filterState = { branch: 'all', urgency: 'all', status: 'all' };
 
   function getFilteredRecords() {
     return RECORDS.filter(r => {
       if (filterState.branch !== 'all' && r['What Coy/Branch are you from?'] !== filterState.branch) return false;
       if (filterState.urgency === 'flagged' && !r['Urgency']) return false;
+      if (filterState.status !== 'all' && (r['Status'] || 'Pending') !== filterState.status) return false;
       return true;
     });
   }
@@ -56,10 +62,15 @@
     filterState.urgency = e.target.value;
     renderAll();
   });
+  document.getElementById('filter-status').addEventListener('change', (e) => {
+    filterState.status = e.target.value;
+    renderAll();
+  });
   document.getElementById('filter-clear').addEventListener('click', () => {
-    filterState = { branch: 'all', urgency: 'all' };
+    filterState = { branch: 'all', urgency: 'all', status: 'all' };
     document.getElementById('filter-branch').value = 'all';
     document.getElementById('filter-urgency').value = 'all';
+    document.getElementById('filter-status').value = 'all';
     renderAll();
   });
 
@@ -86,9 +97,11 @@
   }
 
   function rowsToRecords(headers, rows) {
-    return rows.map(r => {
+    // Sheet row 1 is the header, so the first data row is sheet row 2, etc.
+    return rows.map((r, idx) => {
       const obj = {};
       headers.forEach((h, i) => obj[h] = (r[i] || '').trim());
+      obj._rowNum = idx + 2;
       return obj;
     });
   }
@@ -126,6 +139,17 @@
   function typeKind(t) {
     const map = { Maintenance: 'maint', Transport: 'transport', Finance: 'finance' };
     return map[t] || 'neutral';
+  }
+
+  function statusKind(s) {
+    const map = {
+      'Pending': 'status-pending',
+      'PR Raised': 'status-progress',
+      'PR Approved': 'status-approved',
+      'Completed': 'status-completed',
+      'Rejected': 'status-rejected',
+    };
+    return map[s] || 'status-pending';
   }
 
   const TABLE_ROWS = {};
@@ -169,6 +193,7 @@
       { key: 'Who is requesting?', label: 'Requester' },
       { key: 'What Coy/Branch are you from?', label: 'Coy/Branch' },
       { key: 'What type of request?', label: 'Type', render: r => badge(r['What type of request?'], typeKind(r['What type of request?'])) },
+      { key: 'Status', label: 'Status', render: r => badge(r['Status'] || 'Pending', statusKind(r['Status'] || 'Pending')) },
       { key: 'Urgency', label: 'Urgency', render: r => r['Urgency'] ? badge('Flagged', urgencyKind(r['Urgency'])) : '—' },
     ];
     document.getElementById('overview-table').innerHTML = makeTable(columns, getFilteredRecords(), 'overview');
@@ -177,8 +202,17 @@
   /* ---------------- CHARTS ---------------- */
   let typeChart = null;
   let branchChart = null;
+  let statusChart = null;
 
   const CHART_COLORS = ['#E8A33D', '#274456', '#2E8C5A', '#C1443F', '#7A5FB8', '#3D9AD1'];
+
+  const STATUS_CHART_COLORS = {
+    'Pending': '#97A3AC',
+    'PR Raised': '#3D9AD1',
+    'PR Approved': '#2E8C5A',
+    'Completed': '#E8A33D',
+    'Rejected': '#C1443F',
+  };
 
   function countBy(records, field) {
     const counts = {};
@@ -193,12 +227,18 @@
     const filtered = getFilteredRecords();
     const typeCounts = countBy(filtered, 'What type of request?');
     const branchCounts = countBy(filtered, 'What Coy/Branch are you from?');
+    const statusCounts = countBy(
+      filtered.map(r => ({ ...r, 'Status': r['Status'] || 'Pending' })),
+      'Status'
+    );
 
     const typeCtx = document.getElementById('chart-by-type');
     const branchCtx = document.getElementById('chart-by-branch');
+    const statusCtx = document.getElementById('chart-by-status');
 
     if (typeChart) typeChart.destroy();
     if (branchChart) branchChart.destroy();
+    if (statusChart) statusChart.destroy();
 
     typeChart = new Chart(typeCtx, {
       type: 'bar',
@@ -230,7 +270,36 @@
         }]
       },
       options: {
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            align: 'center',
+            labels: { boxWidth: 10, font: { size: 11 } }
+          }
+        }
+      }
+    });
+
+    // Order status labels consistently regardless of which statuses are present
+    const orderedStatuses = STATUS_OPTIONS.filter(s => statusCounts[s] !== undefined);
+    statusChart = new Chart(statusCtx, {
+      type: 'bar',
+      data: {
+        labels: orderedStatuses,
+        datasets: [{
+          data: orderedStatuses.map(s => statusCounts[s]),
+          backgroundColor: orderedStatuses.map(s => STATUS_CHART_COLORS[s] || '#97A3AC'),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#E2E5E8' } },
+          y: { grid: { display: false } }
+        }
       }
     });
   }
@@ -258,6 +327,7 @@
       { key: 'No. of vehicles', label: 'Vehicles' },
       { key: 'Reporting venue of vehicle', label: 'Reporting Venue' },
       { key: 'Destination venue(s) of vehicle', label: 'Destination' },
+      { key: 'Status', label: 'Status', render: r => badge(r['Status'] || 'Pending', statusKind(r['Status'] || 'Pending')) },
     ];
     document.getElementById('transport-table').innerHTML = makeTable(columns, rows, 'transport');
   }
@@ -271,6 +341,7 @@
       { key: 'Quantity', label: 'Qty' },
       { key: 'Why you need this item/service?', label: 'Purpose' },
       { key: 'When you need item/service by?', label: 'Needed By' },
+      { key: 'Status', label: 'Status', render: r => badge(r['Status'] || 'Pending', statusKind(r['Status'] || 'Pending')) },
     ];
     document.getElementById('finance-table').innerHTML = makeTable(columns, rows, 'finance');
   }
@@ -286,6 +357,7 @@
       { key: 'Defect Category', label: 'Category' },
       { key: 'Description', label: 'Description' },
       { key: 'Urgency', label: 'Urgency', render: r => r['Urgency'] ? badge('Flagged', urgencyKind(r['Urgency'])) : '—' },
+      { key: 'Status', label: 'Status', render: r => badge(r['Status'] || 'Pending', statusKind(r['Status'] || 'Pending')) },
     ];
     document.getElementById('infrastructure-table').innerHTML = makeTable(columns, rows, 'infrastructure');
   }
@@ -304,7 +376,7 @@
     ];
     document.getElementById('search-table').innerHTML = q
       ? makeTable(columns, rows, 'search')
-      : `<div class="placeholder"><div class="placeholder-title">Type to search</div></div>`;
+      : '';
   }
 
   function renderAll() {
@@ -325,13 +397,32 @@
   const modalBody = document.getElementById('modal-body');
   const modalTitle = document.getElementById('modal-title');
 
+  let currentModalRecord = null;
+
   function openModal(record) {
+    currentModalRecord = record;
+
     modalTitle.textContent = record['Who is requesting?']
       ? `Request — ${record['Who is requesting?']}`
       : 'Request Details';
 
+    const currentStatus = record['Status'] || 'Pending';
+    const statusOptionsHtml = STATUS_OPTIONS
+      .map(s => `<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${s}</option>`)
+      .join('');
+
+    const statusControlHtml = `
+      <div class="status-control">
+        <div class="detail-label">Status</div>
+        <div class="status-control-row">
+          <select id="status-select" class="filter-select">${statusOptionsHtml}</select>
+          <button id="status-save-btn" class="status-save-btn">Save</button>
+          <span id="status-save-msg" class="status-save-msg"></span>
+        </div>
+      </div>`;
+
     const rowsHtml = HEADERS
-      .filter(h => (record[h] || '').trim() !== '')
+      .filter(h => h !== 'Status' && (record[h] || '').trim() !== '')
       .map(h => `
         <div class="detail-row">
           <div class="detail-label">${h}</div>
@@ -339,9 +430,51 @@
         </div>`)
       .join('');
 
-    modalBody.innerHTML = rowsHtml || `<div class="placeholder"><div class="placeholder-title">No details available</div></div>`;
+    modalBody.innerHTML = statusControlHtml + (rowsHtml || `<div class="placeholder"><div class="placeholder-title">No further details</div></div>`);
+
+    document.getElementById('status-save-btn').addEventListener('click', saveStatus);
 
     modalOverlay.classList.add('open');
+  }
+
+  async function saveStatus() {
+    const select = document.getElementById('status-select');
+    const msg = document.getElementById('status-save-msg');
+    const btn = document.getElementById('status-save-btn');
+    const newStatus = select.value;
+
+    if (STATUS_UPDATE_URL.includes('PASTE_YOUR')) {
+      msg.textContent = 'Apps Script URL not configured yet';
+      msg.className = 'status-save-msg status-error';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.textContent = 'Saving…';
+    msg.className = 'status-save-msg';
+
+    try {
+      const res = await fetch(STATUS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight against Apps Script
+        body: JSON.stringify({ rowNum: currentModalRecord['_rowNum'], status: newStatus }),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        currentModalRecord['Status'] = newStatus;
+        msg.textContent = 'Saved';
+        msg.className = 'status-save-msg status-ok';
+        renderAll();
+      } else {
+        throw new Error(result.error || 'Update failed');
+      }
+    } catch (err) {
+      msg.textContent = 'Failed: ' + err.message;
+      msg.className = 'status-save-msg status-error';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function closeModal() {
