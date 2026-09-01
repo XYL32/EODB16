@@ -4,7 +4,7 @@
   const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
   // Paste the Web app URL from your Apps Script deployment here:
-  const STATUS_UPDATE_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+  const STATUS_UPDATE_URL = "https://script.google.com/macros/s/AKfycbxJTFEB9put0DdB7N51iu-z_JP4R0rUGz53pa8paKZrcQrBLZBWiHwdjttVgrOJbTiU/exec";
 
   const STATUS_OPTIONS = ["Pending", "PR Raised", "PR Approved", "Completed", "Rejected"];
 
